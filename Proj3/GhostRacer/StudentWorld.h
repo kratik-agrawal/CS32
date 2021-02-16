@@ -1,7 +1,11 @@
+//Kratik Agrawal
+//Proj 3
+
 #ifndef STUDENTWORLD_H_
 #define STUDENTWORLD_H_
 
 #include "GameWorld.h"
+#include "Actor.h"
 #include <string>
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
@@ -15,6 +19,7 @@ public:
     virtual void cleanUp();
 
 private:
+    Actor* m_ghostRacer;
 };
 
 #endif // STUDENTWORLD_H_

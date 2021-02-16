@@ -1,3 +1,6 @@
+//Kratik Agrawal
+//Proj 3
+
 #include "Actor.h"
 #include "StudentWorld.h"
 
