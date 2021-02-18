@@ -7,19 +7,29 @@
 #include "GameWorld.h"
 #include "Actor.h"
 #include <string>
+#include <vector>
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
+const double LEFT_EDGE_BORDER = ROAD_CENTER - ROAD_WIDTH/2;
+const double RIGHT_EDGE_BORDER = ROAD_CENTER + ROAD_WIDTH/2;
+const double WHITE_X_LEFT_VAL = LEFT_EDGE_BORDER + ROAD_WIDTH/3;
+const double WHITE_X_RIGHT_VAL = RIGHT_EDGE_BORDER - ROAD_WIDTH/3;
 
 class StudentWorld : public GameWorld
 {
-public:
-    StudentWorld(std::string assetPath);
-    virtual int init();
-    virtual int move();
-    virtual void cleanUp();
+    public:
+        StudentWorld(std::string assetPath);
+        ~StudentWorld();
+        virtual int init();
+        virtual int move();
+        virtual void cleanUp();
+        
+        Actor* getGhostRacer() { return m_ghostRacer; }
 
-private:
-    Actor* m_ghostRacer;
+    private:
+        Actor* m_ghostRacer;
+        std::vector<Actor*> actors;
+        int lastBorderAddedWhite;
 };
 
 #endif // STUDENTWORLD_H_
