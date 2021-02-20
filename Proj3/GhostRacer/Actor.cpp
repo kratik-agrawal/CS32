@@ -7,12 +7,36 @@
 
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
 
+//Actor Auxillary Functions
+void Actor::determineNewXNewY(double &newX, double &newY){
+    newY = getY() + ySpeed() - getWorld()->getGhostRacer()->ySpeed();
+    newX = getX() + xSpeed();
+}
+bool Actor::determineAlive() const {
+    if(getY() < 0 || getX() < 0 || getY() > VIEW_HEIGHT || getX() > VIEW_WIDTH)
+        return false;
+    return true;
+}
 
+void Pedestrian::updateMovementPlan() {
+    setMovementPlan(getMovementPlan() - 1);
+    if(getMovementPlan() > 0)
+        return;
+    setXSpeed(randInt(-3, 3));
+    while(xSpeed() == 0)
+        setXSpeed(randInt(-3, 3));
+    setMovementPlan(randInt(4,32));
+    if(xSpeed() > 0)
+        setDirection(0);
+    else
+        setDirection(180);
+}
 
 //GhostRacer Class
 void GhostRacer::doSomething(){
     //check if alive
-    
+    if(!getAlive())
+        return;
     
     //take input and update Ghost Racer accordingly
     int ch;
@@ -51,12 +75,62 @@ void GhostRacer::doSomething(){
 
 //BorderLine Class
 void BorderLine::doSomething() {
-    double new_y = getY() + ySpeed() - getWorld()->getGhostRacer()->ySpeed();
-    double new_x = getX() + xSpeed();
+    double newY;
+    double newX;
+    this->determineNewXNewY(newX, newY);
     
-    moveTo(new_x, new_y);
+    moveTo(newX, newY);
     
-    if(getY() < 0 || getX() < 0 || getY() > VIEW_HEIGHT || getX() > VIEW_WIDTH)
-        setAlive(false);
+    setAlive(determineAlive());
     
 }
+
+
+//Human Pedestrian Class
+void HumanPedestrian::doSomething() {
+    if(!getAlive())
+        return;
+    double newY;
+    double newX;
+    this->determineNewXNewY(newX, newY);
+    
+    moveTo(newX, newY);
+    
+    setAlive(determineAlive());
+    
+    updateMovementPlan();
+    
+}
+
+void ZombiePedestrian::doSomething() {
+    if(!getAlive())
+        return;
+    
+    if(getX() < getWorld()->getGhostRacer()->getX() + 30 && getX() > getWorld()->getGhostRacer()->getX() - 30 && getY() > getWorld()->getGhostRacer()->getY()){
+        setDirection(270);
+        if(getX() < getWorld()->getGhostRacer()->getX())
+            setXSpeed(1);
+        else if( getX() > getWorld()->getGhostRacer()->getX() )
+            setXSpeed(-1);
+        else
+            setXSpeed(0);
+        setTicksTillGrunt(getTicksTillGrunt()-1);
+        if(getTicksTillGrunt() <= 0){
+            getWorld()->playSound(SOUND_ZOMBIE_ATTACK);
+            setTicksTillGrunt(20);
+        }
+        
+    }
+    
+    double newY;
+    double newX;
+    this->determineNewXNewY(newX, newY);
+    
+    moveTo(newX, newY);
+    
+    setAlive(determineAlive());
+    
+    updateMovementPlan();
+    
+}
+
