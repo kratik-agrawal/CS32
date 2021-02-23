@@ -18,6 +18,14 @@ bool Actor::determineAlive() const {
     return true;
 }
 
+void HealthActor::decreaseHealth(int amount){
+    health -= amount;
+    if(health <= 0){
+        setAlive(false);
+        getWorld()->playSound(SOUND_PLAYER_DIE);
+    }
+}
+
 void Pedestrian::updateMovementPlan() {
     setMovementPlan(getMovementPlan() - 1);
     if(getMovementPlan() > 0)
@@ -32,37 +40,72 @@ void Pedestrian::updateMovementPlan() {
         setDirection(180);
 }
 
+void Actor::basicDoSomethingStuff(){
+    double newY;
+    double newX;
+    this->determineNewXNewY(newX, newY);
+    
+    moveTo(newX, newY);
+    
+    setAlive(determineAlive());
+
+}
+
+
 //GhostRacer Class
 void GhostRacer::doSomething(){
     //check if alive
     if(!getAlive())
         return;
     
-    //take input and update Ghost Racer accordingly
-    int ch;
-    if(getWorld()->getKey(ch)){
-        switch(ch){
-            case KEY_PRESS_LEFT:
-                if(getDirection() < 114)
-                    setDirection(getDirection() + 8);
-                break;
-            case KEY_PRESS_RIGHT:
-                if(getDirection() > 66)
-                    setDirection(getDirection() - 8);
-                break;
-            case KEY_PRESS_UP:
-                if(ySpeed() < 5)
-                    setYSpeed(ySpeed()+1);
-                break;
-            case KEY_PRESS_DOWN:
-                if(ySpeed() > -1)
-                    setYSpeed(ySpeed()-1);
-                break;
-            case KEY_PRESS_SPACE:
-                sprayCount--;
-                break;
+    if(getX() <= LEFT_EDGE_BORDER){
+        if(getDirection() > 90){
+            decreaseHealth(10);
+            setDirection(82);
+            getWorld()->playSound(SOUND_VEHICLE_CRASH);
+        }
+    }else if(getX() >= RIGHT_EDGE_BORDER){
+        if(getDirection() < 90){
+            decreaseHealth(10);
+            setDirection(98);
+            getWorld()->playSound(SOUND_VEHICLE_CRASH);
+        }
+    } else {
+        //take input and update Ghost Racer accordingly
+        int ch;
+        if(getWorld()->getKey(ch)){
+            switch(ch){
+                case KEY_PRESS_SPACE:
+                    if(sprayCount > 0){
+                        double projectileX = getX() + cos(abs(getDirection())*M_PI/180)*SPRITE_HEIGHT;
+                        double projectileY = getY() - sin(abs(getDirection())*M_PI/180)*SPRITE_HEIGHT;
+                        
+                          getWorld()->addWaterProjectile(projectileX, projectileY, getDirection());
+                        getWorld()->playSound(SOUND_PLAYER_SPRAY);
+                        sprayCount--;
+                    }
+                    break;
+                case KEY_PRESS_LEFT:
+                    if(getDirection() < 114)
+                        setDirection(getDirection() + 8);
+                    break;
+                case KEY_PRESS_RIGHT:
+                    if(getDirection() > 66)
+                        setDirection(getDirection() - 8);
+                    break;
+                case KEY_PRESS_UP:
+                    if(ySpeed() < 5)
+                        setYSpeed(ySpeed()+1);
+                    break;
+                case KEY_PRESS_DOWN:
+                    if(ySpeed() > -1)
+                        setYSpeed(ySpeed()-1);
+                    break;
+                
+            }
         }
     }
+    
     
     //Movement Algorithm
     double MAX_SHIFT = 4.0;
@@ -90,14 +133,8 @@ void BorderLine::doSomething() {
 void HumanPedestrian::doSomething() {
     if(!getAlive())
         return;
-    double newY;
-    double newX;
-    this->determineNewXNewY(newX, newY);
     
-    moveTo(newX, newY);
-    
-    setAlive(determineAlive());
-    
+    basicDoSomethingStuff();
     updateMovementPlan();
     
 }
@@ -122,15 +159,54 @@ void ZombiePedestrian::doSomething() {
         
     }
     
-    double newY;
-    double newX;
-    this->determineNewXNewY(newX, newY);
-    
-    moveTo(newX, newY);
-    
-    setAlive(determineAlive());
-    
+    basicDoSomethingStuff();
     updateMovementPlan();
+    
     
 }
 
+void HealingGoodie::doSomething() {
+    
+    basicDoSomethingStuff();
+    
+}
+
+void HolyWaterGoodie::doSomething() {
+    
+    basicDoSomethingStuff();
+    
+}
+void SoulGoodie::doSomething() {
+    
+    basicDoSomethingStuff();
+    
+    //Rotate clockwise 10 degreesxs7354
+    if(getDirection() > 10)
+        setDirection(getDirection()-10);
+    else if(getDirection() == 0)
+        setDirection(350);
+    else{
+        int degreesSpillOver = 10%getDirection();
+        setDirection(359-degreesSpillOver+1);
+    }
+}
+
+void OilSlick::doSomething() {
+    
+    basicDoSomethingStuff();
+    
+}
+
+void HolyWaterProjectile::decreaseMovementDistance(int amt){
+    travelDistance -= amt;
+    if(travelDistance <= 0)
+        setAlive(false);
+}
+void HolyWaterProjectile::doSomething(){
+    if(!getAlive())
+        return;
+    
+    moveForward(SPRITE_HEIGHT);
+    determineAlive();
+    decreaseMovementDistance(SPRITE_HEIGHT);
+}

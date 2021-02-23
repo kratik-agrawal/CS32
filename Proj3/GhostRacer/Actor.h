@@ -25,6 +25,7 @@ class Actor: public GraphObject{
         void determineNewXNewY(double &newX, double &newY);
         bool determineAlive() const;
         StudentWorld* getWorld() { return world; }
+        void basicDoSomethingStuff();
         
         //bool collided(Actor& object); //still need to define
     private:
@@ -39,9 +40,8 @@ class HealthActor: public Actor {
     public:
         HealthActor(StudentWorld* w, int imageID, double startX, double startY, int startDirection, double size, int depth, int xSpeed, int ySpeed, bool alive, int initialHealth):Actor(w, imageID, startX, startY, startDirection, size, depth, xSpeed, ySpeed, alive), health(initialHealth){}
         virtual ~HealthActor() {}
-        bool isAlive() { return health > 0; }
         int getHealth() const { return health; }
-        void decreaseHealth(int amount) { health -= amount; }
+        void decreaseHealth(int amount);   
     private:
         int health;
 };
@@ -56,6 +56,34 @@ class GhostRacer: public HealthActor {
         int sprayCount;
 };
 
+
+class Pedestrian: public HealthActor {
+    public:
+        Pedestrian(StudentWorld* w, int imageID, double startX, double startY, double size): HealthActor(w, imageID, startX, startY, 0, size, 0, 0, -4, true, 2), movementPlan(0) {}
+        virtual ~Pedestrian() {}
+        int getMovementPlan() const { return movementPlan; }
+        void setMovementPlan(int movementDistance) { movementPlan = movementDistance; }
+        void updateMovementPlan();
+    private:
+        int movementPlan;
+};
+
+class HumanPedestrian: public Pedestrian {
+    public:
+        HumanPedestrian(StudentWorld* w, double startX, double startY): Pedestrian(w, IID_HUMAN_PED, startX, startY, 2.0) {}
+        virtual void doSomething();
+};
+
+class ZombiePedestrian: public Pedestrian {
+    public:
+        ZombiePedestrian(StudentWorld* w, double startX, double startY): Pedestrian(w, IID_ZOMBIE_PED, startX, startY, 3.0), ticksTillGrunt(0) {}
+        int getTicksTillGrunt() const {  return ticksTillGrunt; }
+        void setTicksTillGrunt(int ticks) { ticksTillGrunt = ticks; }
+        virtual void doSomething();
+    private:
+        int ticksTillGrunt;
+};
+
 class BorderLine: public Actor {
     public:
         BorderLine(StudentWorld* w, int imageID, double startX, double startY): Actor(w, imageID, startX, startY, 0, 2.0, 2, 0, -4, true) {}
@@ -64,31 +92,48 @@ class BorderLine: public Actor {
     
 };
 
-class Pedestrian: public HealthActor {
-public:
-    Pedestrian(StudentWorld* w, int imageID, double startX, double startY, double size): HealthActor(w, imageID, startX, startY, 0, size, 0, 0, -4, true, 2), movementPlan(0) {}
-    virtual ~Pedestrian() {}
-    int getMovementPlan() const { return movementPlan; }
-    void setMovementPlan(int movementDistance) { movementPlan = movementDistance; }
-    void updateMovementPlan();
-private:
-    int movementPlan;
+class Goodies: public Actor {
+    public:
+        Goodies(StudentWorld* w, int imageID, double startX, double startY, int startDirection, double size): Actor(w, imageID, startX, startY, startDirection, size, 2, 0, -4, true) {}
+    virtual ~Goodies() {}
+    private:
+    
 };
 
-class HumanPedestrian: public Pedestrian {
-public:
-    HumanPedestrian(StudentWorld* w, double startX, double startY): Pedestrian(w, IID_HUMAN_PED, startX, startY, 2.0) {}
-    virtual void doSomething();
+class HealingGoodie: public Goodies {
+    public:
+        HealingGoodie(StudentWorld* w, double startX, double startY): Goodies(w, IID_HEAL_GOODIE, startX, startY, 0, 1.0) {}
+        virtual void doSomething();
+};
+class HolyWaterGoodie: public Goodies {
+    public:
+        HolyWaterGoodie(StudentWorld* w, double startX, double startY): Goodies(w, IID_HOLY_WATER_GOODIE, startX, startY, 90, 2.0) {}
+        virtual void doSomething();
+};
+class SoulGoodie: public Goodies {
+    public:
+        SoulGoodie(StudentWorld* w, double startX, double startY): Goodies(w, IID_SOUL_GOODIE, startX, startY, 0, 4.0) {}
+        virtual void doSomething();
 };
 
-class ZombiePedestrian: public Pedestrian {
+class OilSlick: public Actor {
+    public:
+        OilSlick(StudentWorld* w, double startX, double startY): Actor(w, IID_OIL_SLICK , startX, startY, 0, randInt(2,5), 2, 0, -4, true) {}
+        virtual void doSomething();
+    private:
+    
+};
+
+//int startDirection, double size, int depth, int xSpeed, int ySpeed, bool alive
+
+class HolyWaterProjectile: public Actor {
 public:
-    ZombiePedestrian(StudentWorld* w, double startX, double startY): Pedestrian(w, IID_ZOMBIE_PED, startX, startY, 3.0), ticksTillGrunt(0) {}
-    int getTicksTillGrunt() const {  return ticksTillGrunt; }
-    void setTicksTillGrunt(int ticks) { ticksTillGrunt = ticks; }
+    HolyWaterProjectile(StudentWorld* w, double startX, double startY, int startDirection): Actor(w, IID_HOLY_WATER_PROJECTILE, startX, startY, startDirection, 1.0, 1, 0,0, true), travelDistance(160) {}
+    void decreaseMovementDistance(int amt);
     virtual void doSomething();
 private:
-    int ticksTillGrunt;
+    int travelDistance;
+    
 };
 
 

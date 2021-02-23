@@ -23,7 +23,7 @@ class StudentWorld : public GameWorld
         virtual int init();
         virtual int move();
         virtual void cleanUp();
-        
+        void addWaterProjectile(double startX, double startY, int direction);
         Actor* getGhostRacer() { return m_ghostRacer; }
 
     private:

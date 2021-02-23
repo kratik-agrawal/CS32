@@ -25,6 +25,9 @@ StudentWorld::~StudentWorld(){
 
     cleanUp();
 }
+void StudentWorld::addWaterProjectile(double startX, double startY, int direction) {
+    actors.push_back(new HolyWaterProjectile(this, startX, startY, direction));
+}
 
 int StudentWorld::init()
 {
@@ -62,6 +65,9 @@ int StudentWorld::move()
         actors[i]->doSomething();
     }
     
+    if(!m_ghostRacer->getAlive())
+        return GWSTATUS_PLAYER_DIED;
+    
     //we need to remove all dead actors
     vector<Actor*>::iterator it = actors.begin();
     for(; it != actors.end(); ){
@@ -98,6 +104,26 @@ int StudentWorld::move()
     if(randInt(0, chanceZombiePed-1) == 0){
         actors.push_back(new ZombiePedestrian(this, randInt(0, VIEW_WIDTH), VIEW_HEIGHT));
     }
+    
+    //Add Holy Water Goodies
+    int chanceHolyWater = 100 + 10 * getLevel();
+    if(randInt(0, chanceHolyWater-1) == 0){
+        actors.push_back(new HolyWaterGoodie(this, randInt(LEFT_EDGE_BORDER+SPRITE_WIDTH, RIGHT_EDGE_BORDER-SPRITE_WIDTH), VIEW_HEIGHT));
+    }
+    
+    //Add Soul Goodies
+    int chanceSoulGoodie = 100;
+    if(randInt(0, chanceSoulGoodie-1) == 0){
+        actors.push_back(new SoulGoodie(this, randInt(LEFT_EDGE_BORDER+SPRITE_WIDTH, RIGHT_EDGE_BORDER-SPRITE_WIDTH), VIEW_HEIGHT));
+    }
+    
+    //Add Oil Slicks
+    int chanceOilSlick = max(150 - getLevel()*40, 40);
+    if(randInt(0, chanceOilSlick-1) == 0){
+        actors.push_back(new OilSlick(this, randInt(LEFT_EDGE_BORDER+SPRITE_WIDTH, RIGHT_EDGE_BORDER-SPRITE_WIDTH), VIEW_HEIGHT));
+    }
+    
+    
     
     
     decLives();
