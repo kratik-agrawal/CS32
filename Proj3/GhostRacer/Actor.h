@@ -6,7 +6,7 @@
 #define ACTOR_H_
 
 #include "GraphObject.h"
-
+#include <algorithm>
 // Students:  Add code to this file, Actor.cpp, StudentWorld.h, and StudentWorld.cpp
 class StudentWorld;
 
@@ -25,7 +25,9 @@ class Actor: public GraphObject{
         void determineNewXNewY(double &newX, double &newY);
         bool determineAlive() const;
         StudentWorld* getWorld() { return world; }
-        void basicDoSomethingStuff();
+        bool basicDoSomethingStuff();
+        
+    virtual bool isCollisionAvoidanceWorthy() const { return false; }
         
         //bool collided(Actor& object); //still need to define
     private:
@@ -38,34 +40,51 @@ class Actor: public GraphObject{
 
 class HealthActor: public Actor {
     public:
-        HealthActor(StudentWorld* w, int imageID, double startX, double startY, int startDirection, double size, int depth, int xSpeed, int ySpeed, bool alive, int initialHealth):Actor(w, imageID, startX, startY, startDirection, size, depth, xSpeed, ySpeed, alive), health(initialHealth){}
+        HealthActor(StudentWorld* w, int imageID, double startX, double startY, int startDirection, double size, int depth, int xSpeed, int ySpeed, bool alive, int initialHealth, int movement):Actor(w, imageID, startX, startY, startDirection, size, depth, xSpeed, ySpeed, alive), health(initialHealth), movementPlan(movement){}
         virtual ~HealthActor() {}
         int getHealth() const { return health; }
-        void decreaseHealth(int amount);   
+        void heal(int amt) { health +=amt; if(health > 100) health = 100; }
+        void decreaseHealth(int amount);
+        int getMovementPlan() const { return movementPlan; }
+        void setMovementPlan(int movementDistance) { movementPlan = movementDistance; }
+        void updateMovementPlan();
+        virtual bool isCollisionAvoidanceWorthy() const { return true; }
     private:
         int health;
+        int movementPlan;
 };
 
 class GhostRacer: public HealthActor {
     public:
-        GhostRacer(StudentWorld* w): HealthActor(w, IID_GHOST_RACER, 128, 32, 90, 4.0, 0, 0, 0, true, 100), sprayCount(10){}
+        GhostRacer(StudentWorld* w): HealthActor(w, IID_GHOST_RACER, 128, 32, 90, 4.0, 0, 0, 0, true, 100, 0), sprayCount(10){}
         virtual void doSomething();
-        
+        void spin();
+        int getSprays() { return sprayCount; }
+        void increaseSprays(int amt) { sprayCount += amt;}
     private:
         
         int sprayCount;
 };
 
+class ZombieCab: public HealthActor {
+    public:
+        ZombieCab(StudentWorld* w, double startX, double startY, int ySpeed): HealthActor(w, IID_ZOMBIE_CAB, startX, startY, 90, 4.0, 0, 0, ySpeed, true, 3, 0), damagedGR(false) {}
+        bool getDamagedGR() const { return damagedGR; }
+        void setDamagedGR(bool state) { damagedGR = state; }
+        virtual void doSomething();
+    private:
+        bool damagedGR;
+    
+};
+
 
 class Pedestrian: public HealthActor {
     public:
-        Pedestrian(StudentWorld* w, int imageID, double startX, double startY, double size): HealthActor(w, imageID, startX, startY, 0, size, 0, 0, -4, true, 2), movementPlan(0) {}
+        Pedestrian(StudentWorld* w, int imageID, double startX, double startY, double size): HealthActor(w, imageID, startX, startY, 0, size, 0, 0, -4, true, 2, 0) {}
         virtual ~Pedestrian() {}
-        int getMovementPlan() const { return movementPlan; }
-        void setMovementPlan(int movementDistance) { movementPlan = movementDistance; }
-        void updateMovementPlan();
+        
     private:
-        int movementPlan;
+       
 };
 
 class HumanPedestrian: public Pedestrian {
@@ -124,7 +143,6 @@ class OilSlick: public Actor {
     
 };
 
-//int startDirection, double size, int depth, int xSpeed, int ySpeed, bool alive
 
 class HolyWaterProjectile: public Actor {
 public:

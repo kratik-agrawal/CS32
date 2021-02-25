@@ -25,11 +25,18 @@ class StudentWorld : public GameWorld
         virtual void cleanUp();
         void addWaterProjectile(double startX, double startY, int direction);
         Actor* getGhostRacer() { return m_ghostRacer; }
+        GhostRacer* overlapGhostRacer(Actor* a);
+        void increaseSoulsSaved() { soulsSaved++; }
+        void ghostRacerDies() { m_ghostRacer->setAlive(false);
+            decLives();
+        }
 
     private:
-        Actor* m_ghostRacer;
+        GhostRacer* m_ghostRacer;
         std::vector<Actor*> actors;
         int lastBorderAddedWhite;
+        void currLaneLeftRight(int lane, double &left, double &right);
+        int soulsSaved;
 };
 
 #endif // STUDENTWORLD_H_

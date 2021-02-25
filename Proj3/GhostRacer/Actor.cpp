@@ -26,7 +26,7 @@ void HealthActor::decreaseHealth(int amount){
     }
 }
 
-void Pedestrian::updateMovementPlan() {
+void HealthActor::updateMovementPlan() {
     setMovementPlan(getMovementPlan() - 1);
     if(getMovementPlan() > 0)
         return;
@@ -40,7 +40,7 @@ void Pedestrian::updateMovementPlan() {
         setDirection(180);
 }
 
-void Actor::basicDoSomethingStuff(){
+bool Actor::basicDoSomethingStuff(){
     double newY;
     double newX;
     this->determineNewXNewY(newX, newY);
@@ -48,9 +48,23 @@ void Actor::basicDoSomethingStuff(){
     moveTo(newX, newY);
     
     setAlive(determineAlive());
+    return determineAlive();
 
 }
 
+void GhostRacer::spin(){
+    int randDirection = randInt(5,20);
+    int posNeg = randInt(1,2);
+    if(posNeg == 1){
+        setDirection(getDirection() + randDirection);
+        if(getDirection() > 120)
+            setDirection(120);
+    }else{
+        setDirection(getDirection() - randDirection);
+        if(getDirection() < 60)
+            setDirection(60);
+    }
+}
 
 //GhostRacer Class
 void GhostRacer::doSomething(){
@@ -123,9 +137,23 @@ void BorderLine::doSomething() {
     this->determineNewXNewY(newX, newY);
     
     moveTo(newX, newY);
-    
     setAlive(determineAlive());
     
+}
+
+//Zombie Cab Do Something
+void ZombieCab::doSomething(){
+    if(!getAlive())
+        return;
+    
+    if(!basicDoSomethingStuff())
+        return;
+    
+    setMovementPlan(getMovementPlan() - 1);
+    if(getMovementPlan() > 0)
+        return;
+    setYSpeed(ySpeed() + randInt(-2, 2));
+    setMovementPlan(randInt(4,32));
 }
 
 
@@ -133,8 +161,13 @@ void BorderLine::doSomething() {
 void HumanPedestrian::doSomething() {
     if(!getAlive())
         return;
+    if(getWorld()->overlapGhostRacer(this) != nullptr){
+        getWorld()->ghostRacerDies();
+        return;
+    }
     
-    basicDoSomethingStuff();
+    if(!basicDoSomethingStuff())
+        return;
     updateMovementPlan();
     
 }
@@ -142,6 +175,11 @@ void HumanPedestrian::doSomething() {
 void ZombiePedestrian::doSomething() {
     if(!getAlive())
         return;
+    if(getWorld()->overlapGhostRacer(this) != nullptr){
+        getWorld()->overlapGhostRacer(this)->decreaseHealth(5);
+        decreaseHealth(2);
+        return;
+    }
     
     if(getX() < getWorld()->getGhostRacer()->getX() + 30 && getX() > getWorld()->getGhostRacer()->getX() - 30 && getY() > getWorld()->getGhostRacer()->getY()){
         setDirection(270);
@@ -159,7 +197,9 @@ void ZombiePedestrian::doSomething() {
         
     }
     
-    basicDoSomethingStuff();
+    if(!basicDoSomethingStuff())
+        return;
+    
     updateMovementPlan();
     
     
@@ -167,19 +207,42 @@ void ZombiePedestrian::doSomething() {
 
 void HealingGoodie::doSomething() {
     
-    basicDoSomethingStuff();
-    
+    if(!basicDoSomethingStuff())
+        return;
+    if(getWorld()->overlapGhostRacer(this) != nullptr){
+        getWorld()->overlapGhostRacer(this)->heal(10);
+        setAlive(false);
+        getWorld()->playSound(SOUND_GOT_GOODIE);
+        getWorld()->increaseScore(250);
+        return;
+    }
 }
 
 void HolyWaterGoodie::doSomething() {
     
-    basicDoSomethingStuff();
+    if(!basicDoSomethingStuff())
+        return;
+    if(getWorld()->overlapGhostRacer(this) != nullptr){
+        getWorld()->overlapGhostRacer(this)->increaseSprays(10);
+        setAlive(false);
+        getWorld()->playSound(SOUND_GOT_GOODIE);
+        getWorld()->increaseScore(50);
+        return;
+    }
     
 }
 void SoulGoodie::doSomething() {
     
-    basicDoSomethingStuff();
+    if(!basicDoSomethingStuff())
+        return;
     
+    if(getWorld()->overlapGhostRacer(this) != nullptr){
+        getWorld()->increaseSoulsSaved();
+        setAlive(false);
+        getWorld()->playSound(SOUND_GOT_SOUL);
+        getWorld()->increaseScore(100);
+    }
+        
     //Rotate clockwise 10 degreesxs7354
     if(getDirection() > 10)
         setDirection(getDirection()-10);
@@ -189,12 +252,18 @@ void SoulGoodie::doSomething() {
         int degreesSpillOver = 10%getDirection();
         setDirection(359-degreesSpillOver+1);
     }
+    
 }
 
 void OilSlick::doSomething() {
     
-    basicDoSomethingStuff();
+    if(!basicDoSomethingStuff())
+        return;
     
+    if(getWorld()->overlapGhostRacer(this) != nullptr){
+        getWorld()->playSound(SOUND_OIL_SLICK);
+        getWorld()->overlapGhostRacer(this)->spin();
+    }
 }
 
 void HolyWaterProjectile::decreaseMovementDistance(int amt){
@@ -210,3 +279,110 @@ void HolyWaterProjectile::doSomething(){
     determineAlive();
     decreaseMovementDistance(SPRITE_HEIGHT);
 }
+//
+//// Generate new Zombie Cab
+//    int chanceVehicle = max(100 - (getLevel() * 10), 20);
+//
+//    if (randInt(0, chanceVehicle - 1) == 0) {
+//        int curLane = randInt(0, 2);
+//        bool laneFound = false;
+//        int cabStartY = -999;
+//        int cabSpeed = -999;
+//        int laneCenter = -999;
+//
+//        bool checkedLeft = false;
+//        bool checkedMid = false;
+//        bool checkedRight = false;
+//
+//        while (!checkedLeft || !checkedMid || !checkedRight) {
+//            int laneLeft = LEFT_EDGE + (curLane * (ROAD_WIDTH / 3));
+//            int laneRight = LEFT_EDGE + (curLane + 1) * (ROAD_WIDTH / 3);
+//
+//            if ( !(gr->getX() >= laneLeft && gr->getX() < laneRight) ) {
+//                int minY = 256;
+//                Actor* a = nullptr;
+//
+//                for (unsigned long j = 0; j < Actors.size(); j++) {
+//                    if (Actors.at(j)->getX() >= laneLeft &&
+//                        Actors.at(j)->getX() < laneRight &&
+//                        Actors.at(j)->getY() < minY &&
+//                        Actors.at(j)->checkWorthy()) {
+//
+//                        a = Actors.at(j);
+//                        minY = a->getY();
+//                    }
+//                }
+//
+//                if (a == nullptr || a->getY() > VIEW_HEIGHT / 3) {
+//                    cabStartY = SPRITE_HEIGHT / 2;
+//                    cabSpeed = gr->getySpeed() + randInt(2, 4);
+//                    laneCenter = ROAD_CENTER + (curLane - 1) * (ROAD_WIDTH / 3);
+//
+//                    laneFound = true;
+//                    break;
+//                }
+//
+//                int maxY = 0;
+//                a = nullptr;
+//
+//                for (unsigned long j = 0; j < Actors.size(); j++) {
+//                    if (Actors.at(j)->getX() >= laneLeft &&
+//                        Actors.at(j)->getX() < laneRight &&
+//                        Actors.at(j)->getY() > maxY &&
+//                        Actors.at(j)->checkWorthy()) {
+//
+//                        a = Actors.at(j);
+//                        maxY = a->getY();
+//                    }
+//                }
+//
+//                if (a == nullptr || a->getY() < (2/3) * VIEW_HEIGHT) {
+//                    cabStartY = VIEW_HEIGHT - SPRITE_HEIGHT / 2;
+//                    cabSpeed = gr->getySpeed() - randInt(2, 4);
+//                    laneCenter = ROAD_CENTER + (curLane - 1) * (ROAD_WIDTH / 3);
+//
+//                    laneFound = true;
+//                    break;
+//                }
+//            }
+//
+//            switch (curLane) {
+//                case 0:
+//                    checkedLeft = true;
+//
+//                    if (!checkedMid) {
+//                        curLane = 1;
+//                    } else if (!checkedRight) {
+//                        curLane = 2;
+//                    }
+//
+//                    break;
+//                case 1:
+//                    checkedMid = true;
+//
+//                    if (!checkedLeft) {
+//                        curLane = 0;
+//                    } else if (!checkedRight) {
+//                        curLane = 2;
+//                    }
+//
+//                    break;
+//                case 2:
+//                    checkedRight = true;
+//
+//                    if (!checkedLeft) {
+//                        curLane = 0;
+//                    } else if(!checkedMid) {
+//                        curLane = 1;
+//                    }
+//
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//
+//        if (laneFound) {
+//            Actors.push_back(new ZombieCab(laneCenter, cabStartY, cabSpeed, curLane, this, gr));
+//        }
+//    }

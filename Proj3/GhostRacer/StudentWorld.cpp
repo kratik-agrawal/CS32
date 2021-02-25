@@ -4,6 +4,8 @@
 #include "StudentWorld.h"
 #include "GameConstants.h"
 #include <string>
+#include <sstream>
+#include <iomanip>
 using namespace std;
 
 GameWorld* createStudentWorld(string assetPath)
@@ -28,9 +30,35 @@ StudentWorld::~StudentWorld(){
 void StudentWorld::addWaterProjectile(double startX, double startY, int direction) {
     actors.push_back(new HolyWaterProjectile(this, startX, startY, direction));
 }
+void StudentWorld::currLaneLeftRight(int lane, double &left, double &right){
+    if(lane == 0){
+        left = LEFT_EDGE_BORDER;
+        right = WHITE_X_LEFT_VAL;
+        return;
+    }
+    if(lane == 1){
+        left = WHITE_X_LEFT_VAL;
+        right = WHITE_X_RIGHT_VAL;
+    }
+    if(lane == 2){
+        left = WHITE_X_RIGHT_VAL;
+        right = RIGHT_EDGE_BORDER;
+    }
+}
+
+GhostRacer* StudentWorld::overlapGhostRacer(Actor* a){
+    double deltaX = abs(a->getX() - m_ghostRacer->getX());
+    double deltaY = abs(a->getY() - m_ghostRacer->getY());
+    double sumRadius = a->getRadius() + m_ghostRacer->getRadius();
+    if(deltaX < sumRadius*.25 && deltaY < sumRadius*0.6)
+        return m_ghostRacer;
+    return nullptr;
+}
+
 
 int StudentWorld::init()
 {
+    soulsSaved = 0;
     m_ghostRacer = new GhostRacer(this);
     
     //Border Lines
@@ -64,9 +92,11 @@ int StudentWorld::move()
     for(int i = 0; i < actors.size(); i++){
         actors[i]->doSomething();
     }
-    
+    if(soulsSaved == (getLevel()*2 +5))
+        return GWSTATUS_FINISHED_LEVEL;
     if(!m_ghostRacer->getAlive())
         return GWSTATUS_PLAYER_DIED;
+    
     
     //we need to remove all dead actors
     vector<Actor*>::iterator it = actors.begin();
@@ -123,10 +153,74 @@ int StudentWorld::move()
         actors.push_back(new OilSlick(this, randInt(LEFT_EDGE_BORDER+SPRITE_WIDTH, RIGHT_EDGE_BORDER-SPRITE_WIDTH), VIEW_HEIGHT));
     }
     
+    int chanceZombieCab = max(100 - getLevel()*10, 20);
+    if(randInt(0, chanceZombieCab-1) == 0){
+        int currLane = randInt(0, 2);
+        double yClosestToBottom = VIEW_HEIGHT+1;
+        double yClosestToTop = -1;
+        int cabY = 0;
+        int cabYSpeed = 0;
+        bool viableFound = false;
+        for(int i = 0; i < 3; i++){
+            double left;
+            double right;
+            currLaneLeftRight(currLane, left, right);
+            if(m_ghostRacer->getX() >= left && m_ghostRacer->getX()<=right){
+                if(m_ghostRacer->getY() < yClosestToBottom)
+                    yClosestToBottom = m_ghostRacer->getY();
+                if(m_ghostRacer->getY() > yClosestToTop)
+                    yClosestToTop = m_ghostRacer->getY();
+            }
+                
+            for(int i = 0; i < actors.size(); i++){
+                if(actors[i]->isCollisionAvoidanceWorthy() && actors[i]->getX() >= left && actors[i]->getX() <= right){
+                    if(actors[i]->getY() < yClosestToBottom)
+                        yClosestToBottom = actors[i]->getY();
+                    if(actors[i]->getY() > yClosestToTop)
+                        yClosestToTop = actors[i]->getY();
+                }
+            }
+            if(yClosestToBottom == VIEW_HEIGHT+1 || yClosestToBottom > VIEW_HEIGHT/3){
+                cabY = SPRITE_HEIGHT/2;
+                cabYSpeed = getGhostRacer()->ySpeed() + randInt(2,4);
+                viableFound = true;
+                break;
+            } else if(yClosestToTop == -1 || yClosestToTop < VIEW_HEIGHT*2.0/3){
+                cabY = VIEW_HEIGHT - SPRITE_HEIGHT/2;
+                cabYSpeed = getGhostRacer()->ySpeed() - randInt(2,4);
+                viableFound = true;
+                break;
+            } else{
+                currLane = (currLane+1)%3;
+                yClosestToBottom = VIEW_HEIGHT+1;
+                yClosestToTop = -1;
+            }
+        }
+        if(viableFound){
+            int cabX = ROAD_CENTER;
+            if(currLane == 0)
+                cabX -= ROAD_WIDTH/3;
+            else if(currLane == 2)
+                cabX += ROAD_WIDTH/3;
+            actors.push_back(new ZombieCab(this, cabX, cabY, cabYSpeed));
+        }
+        
+       
+    }
+    
+    ostringstream oss;
+    oss << "Score: " << setw(3) << getScore();
+    oss << " Lvl: " << setw(2) << getLevel();
+    oss << " Souls2Save: " << setw(3) << (getLevel()*2 +5) - soulsSaved;
+    oss << " Lives: " << setw(3) << getLives();
+    oss << " Health: " << setw(4) << m_ghostRacer->getHealth();
+    oss << " Sprays: " << setw(3) << m_ghostRacer->getSprays();
+    oss << " Bonus: " << setw(4) << "5000";
+
+    string s = oss.str();
+    setGameStatText(s);
     
     
-    
-    decLives();
     return GWSTATUS_CONTINUE_GAME;
 }
 
